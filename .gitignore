@@ -13,6 +13,7 @@ cscope.out.temp
 tags.lock
 compile_commands.json
 .cache
-*.PDF
 **/__pycache__/**
 *.csv
+venv
+*.egg-info
