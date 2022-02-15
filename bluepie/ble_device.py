@@ -77,6 +77,9 @@ class BLEDevice(object):
         except ImportError:
             pass
 
+        except BleakError as e:
+            self.log.exception(e)
+
     def get_services(self) -> bleak.backends.service.BleakGATTServiceCollection:
         """Gets all services that are registered for this device.
 
