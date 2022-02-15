@@ -3,8 +3,11 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+with open("requirements.txt") as f:
+    required = f.read().splitlines()
+
 setuptools.setup(
-    name="toolbox",
+    name="bluepie",
     version="0.1.0",
     author="Marko Sagadin",
     author_email="marko.sagadin42@gmail.com",
@@ -17,5 +20,5 @@ setuptools.setup(
     },
     license="MIT",
     packages=["bluepie"],
-    install_requires=["bleak"],
+    install_requires=required,
 )
