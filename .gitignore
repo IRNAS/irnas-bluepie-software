@@ -7,6 +7,7 @@ dfu_package
 logs
 .swp
 tags
+tags.temp
 cscope.out
 cscope.out.files
 cscope.out.temp
