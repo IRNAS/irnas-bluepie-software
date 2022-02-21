@@ -1,4 +1,4 @@
-from logging import Logger, Formatter
+from logging import Logger
 from rich.logging import RichHandler
 
 
@@ -10,7 +10,8 @@ class Logs(Logger):
         prettier logging.
 
         Args:
-            enabled (bool): whether the logging module will be enabled.
+            enabled (bool): If set to true then level argument is taken
+            into account, if false then logger is set to ERROR level.
             level (bool): logging level, possible options are:
                 - "CRITICAL"
                 - "ERROR"
@@ -21,8 +22,9 @@ class Logs(Logger):
                 https://docs.python.org/3/howto/logging.html#logging-levels
         """
         super().__init__("rich")
-        super().setLevel(level)
-        super().addHandler(RichHandler(rich_tracebacks=True))
+        if enable:
+            super().setLevel(level)
+        else:
+            super().setLevel("ERROR")
 
-        # This controls whether the logs will be enabled or not
-        self.propagate = enable
+        super().addHandler(RichHandler(rich_tracebacks=True))
