@@ -8,17 +8,23 @@ with open("requirements.txt") as f:
 
 setuptools.setup(
     name="bluepie",
-    version="0.1.0",
-    author="Marko Sagadin",
-    author_email="marko.sagadin42@gmail.com",
-    description="Testing installation of Package",
+    version="1.0.0",
+    author="Irnas",
+    author_email="iot@irnas.eu",
+    description="This repository contains often used BLE wrappers around bleak.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/IRNAS/irnas-bluepie-software",
     project_urls={
         "Bug Tracker": "https://github.com/IRNAS/irnas-bluepie-software/issues"
     },
-    license="MIT",
+    license="GPLv2",
     packages=["bluepie"],
-    install_requires=required,
+    install_requires=["bleak >= 0.14.2", "rich >= 11.2.0"],
+    classifiers=[
+            "Programming Language :: Python :: 3",
+            "Programming Language :: Python :: 3.8",
+            "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+            "Operating System :: POSIX :: Linux",
+        ],
 )
