@@ -1,7 +1,6 @@
-import asyncio
-
-from queue import Queue
 from .ble_device import BLEDevice
+
+import asyncio
 
 NUS_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 NUS_RX_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
@@ -13,7 +12,6 @@ class NUSDevice(BLEDevice):
     NUS device class which is derived from BLE device class
 
     With it we can:
-    - connect to a BLE device
     - Send strings to the device
     - Receive strings from the device
     """
@@ -23,13 +21,14 @@ class NUSDevice(BLEDevice):
         mac_addr: str,
         max_lines_read: int,
         eol: str = "\r\n",
-        timeout: int = 1,
         enable_logs: bool = False,
     ):
         """Creates instance of NUSDevice class.
 
-        Instance will immediately connect to the given mac address
-        and enable notifications on NUS_TX_UUID characteristic.
+        Instance will enable notifications on NUS_TX_UUID characteristic.
+
+        Before using any of the public methods we should be connected to the
+        device.
 
         Args:
             mac_addr (str): MAC address of the BLE device
@@ -37,28 +36,59 @@ class NUSDevice(BLEDevice):
             to read by default.
             eol (str): End of line character. String terminated of it is defined
             as a line in this file.
-            timeout (int): how long to wait after each received TX notification
             enable_logs (bool): whether the logs should be enabled
         """
 
         super().__init__(mac_addr, enable_logs)
-        super().connect()
         self.eol = eol
         self.max_lines_read = max_lines_read
-        self.timeout = timeout
         self.queue = asyncio.Queue()
-        self._receive_notify_enable()
 
-    def _receive_notify_enable(self):
+    def __del__(self) -> None:
+        """Destructor."""
+        self.disconnect()
+
+    def _receive_notify_enable(self) -> None:
         """Enables notifications on NUS_TX_UUID characteristic."""
 
         async def async_handle_rx(_, data):
             await self.queue.put(data)
 
-        async def async_notify():
-            await self.client.start_notify(NUS_TX_UUID, async_handle_rx)
+        super().start_notify(NUS_TX_UUID, async_handle_rx)
 
-        self.loop.run_until_complete(async_notify())
+    def _receive_notify_disable(self) -> None:
+        """Disables notifications on NUS_TX_UUID characteristic."""
+
+        super().stop_notify(NUS_TX_UUID)
+
+    def connect(self, timeout: int = None) -> bool:
+        """Connects to the Nus device and enables notifications.
+
+        Args:
+            timeout (int): connection timeout
+
+        Returns:
+            True if connected succesfully, otherwise false.
+        """
+
+        if super().connect(timeout):
+            self._receive_notify_enable()
+            return True
+        else:
+            return False
+
+    def disconnect(self) -> bool:
+        """Disconnects from the NUS device.
+
+        Args:
+            timeout (int): connection timeout
+
+        Returns:
+            True if connected succesfully, otherwise false.
+        """
+        if self.client.is_connected:
+            self._receive_notify_disable()
+            super().disconnect()
 
     def nus_send(self, line: str):
         """Sends line string over NUS.
@@ -82,7 +112,7 @@ class NUSDevice(BLEDevice):
             except asyncio.QueueEmpty:
                 break
 
-    def nus_read_lines(self, max_lines_read: int = None, timeout: int = None) -> list:
+    def nus_read_lines(self, max_lines_read: int = None, timeout: int = 0.4) -> list:
         """Reads a number of lines over NUS.
 
         Function will wait for __timeout__ seconds after each received
@@ -103,9 +133,6 @@ class NUSDevice(BLEDevice):
         Returns:
             List of read lines, can be an empty list if no lines were read.
         """
-
-        if not timeout:
-            timeout = self.timeout
 
         if not max_lines_read:
             max_lines_read = self.max_lines_read

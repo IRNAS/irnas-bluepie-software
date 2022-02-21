@@ -5,7 +5,8 @@ from .logs import Logs
 
 import bleak
 from bleak import BleakClient
-from bleak.exc import BleakDBusError, BleakError
+from bleak.exc import BleakError, BleakDBusError
+from typing import Callable
 
 
 class BLEDevice(object):
@@ -33,11 +34,12 @@ class BLEDevice(object):
         self.client = BleakClient(mac_addr, loop=self.loop)
         self.log = Logs(enable=enable_logs)
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Destructor."""
         self.disconnect()
+        self.loop.close()
 
-    def connect(self, timeout: int = 3) -> None:
+    def connect(self, timeout: int = 3) -> bool:
         """Connects to a BLE device in a blocking fashion.
 
         Args:
@@ -47,6 +49,9 @@ class BLEDevice(object):
         Raises:
             BleakError: In case there is a problem with Bleak library
             TimeoutError: If the connection to a device timed out
+
+        Returns:
+            True if device was connected to, otherwise false.
         """
 
         async def async_connect():
@@ -54,13 +59,13 @@ class BLEDevice(object):
 
         try:
             self.loop.run_until_complete(async_connect())
-            self.log.info(f"Connected to the device {self.mac_addr}")
 
-        except BleakError as e:
-            self.log.exception(e)
+        except (BleakError, TimeoutError, BleakDBusError) as e:
+            self.log.warning(f"Failed to connected to the device {self.mac_addr}")
+            return False
 
-        except TimeoutError:
-            self.log.exception(f"Connection to device {self.mac_addr} timed out")
+        self.log.info(f"Connected to the device {self.mac_addr}")
+        return True
 
     def disconnect(self) -> None:
         """Disconnect from the device in a blocking fashion."""
@@ -166,6 +171,33 @@ class BLEDevice(object):
             return await self.client.read_gatt_char(char_specifier=uuid)
 
         return self.loop.run_until_complete(async_read())
+
+    def start_notify(self, uuid: str, callback) -> None:
+        """Starts notifications on given UUID characteristic.
+
+        Given callback is called with received data.
+
+        Args:
+            uuid (str): characteristic UUID
+            callback (Callable[[int, bytearray], None]): callback
+        """
+
+        async def async_notify_enable():
+            await self.client.start_notify(uuid, callback)
+
+        self.loop.run_until_complete(async_notify_enable())
+
+    def stop_notify(self, uuid: str) -> None:
+        """Stops notifications on given UUID characteristic
+
+        Args:
+            uuid (str): characteristic UUID
+        """
+
+        async def async_stop_notify():
+            await self.client.stop_notify(uuid)
+
+        self.loop.run_until_complete(async_stop_notify())
 
 
 #     def callback_func(
