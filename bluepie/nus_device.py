@@ -157,6 +157,6 @@ class NUSDevice(BLEDevice):
             if temp_buf.count(self.eol) >= max_lines_read:
                 return lines[:max_lines_read]
             else:
-                return lines[:-1]
+                return lines
 
         return self.loop.run_until_complete(read_all())
